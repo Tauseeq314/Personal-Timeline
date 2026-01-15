@@ -8,6 +8,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
+
+import com.example.smarttimeline.notification.NotificationScheduler;
 import com.example.smarttimeline.ui.timeline.TimelineFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -23,6 +25,9 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Initialize daily reminder notification
+        NotificationScheduler.scheduleDefaultDailyReminder(this);
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
@@ -54,5 +59,6 @@ public class MainActivity extends AppCompatActivity {
                     .replace(R.id.fragment_container, new TimelineFragment())
                     .commit();
         }
+
     }
 }

@@ -124,4 +124,5 @@
     <string name="period_monthly">Monthly</string>
     <string name="period_yearly">Yearly</string>
     <string name="period_custom">Custom</string>
+    <string name="backup_restore"><![CDATA[Backup & Restore]]></string>
 </resources>

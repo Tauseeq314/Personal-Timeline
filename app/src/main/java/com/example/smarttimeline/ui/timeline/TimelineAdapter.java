@@ -82,6 +82,15 @@ public class TimelineAdapter extends ListAdapter<Post, TimelineAdapter.PostViewH
                     listener.onItemClick(getItem(position));
                 }
             });
+            itemView.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    Post post = getItem(position);
+                    if (listener != null) {
+                        listener.onItemClick(post);
+                    }
+                }
+            });
         }
 
         public void bind(Post post) {

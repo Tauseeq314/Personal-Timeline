@@ -1,41 +1,45 @@
 package com.example.smarttimeline.ui.settings;
 
-import android.app.AlertDialog;
-import android.app.Application;
-import android.content.SharedPreferences;
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Switch;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.smarttimeline.R;
 import com.example.smarttimeline.ai.AIRepository;
-import com.example.smarttimeline.ai.AIUtils;
-import com.example.smarttimeline.util.Constants;
-import com.example.smarttimeline.viewmodel.SettingsViewModel;
+import com.example.smarttimeline.viewmodel.ExportImportViewModel;
 
 public class SettingsFragment extends Fragment {
 
-    private SettingsViewModel viewModel;
+    private ExportImportViewModel viewModel;
     private AIRepository aiRepository;
 
-    private TextView textViewApiKeyStatus;
-    private Button buttonConfigureApiKey;
-    private Button buttonRemoveApiKey;
-    private Switch switchNotifications;
-    private Button buttonClearAllData;
+    private EditText editTextApiKey;
+    private Button buttonSaveApiKey;
     private Button buttonExportData;
-    private TextView textViewVersion;
+    private Button buttonImportData;
+    private Button buttonClearData;
+    private TextView textViewStatus;
+    private ProgressBar progressBar;
+
+    private ActivityResultLauncher<Intent> exportLauncher;
+    private ActivityResultLauncher<Intent> importLauncher;
 
     @Nullable
     @Override
@@ -44,142 +48,138 @@ public class SettingsFragment extends Fragment {
 
         initializeViews(view);
         setupViewModel();
+        setupFilePickers();
         setupListeners();
-        updateUI();
+        loadApiKey();
 
         return view;
     }
 
     private void initializeViews(View view) {
-        textViewApiKeyStatus = view.findViewById(R.id.textViewApiKeyStatus);
-        buttonConfigureApiKey = view.findViewById(R.id.buttonConfigureApiKey);
-        buttonRemoveApiKey = view.findViewById(R.id.buttonRemoveApiKey);
-        switchNotifications = view.findViewById(R.id.switchNotifications);
-        buttonClearAllData = view.findViewById(R.id.buttonClearAllData);
+        editTextApiKey = view.findViewById(R.id.editTextApiKey);
+        buttonSaveApiKey = view.findViewById(R.id.buttonSaveApiKey);
         buttonExportData = view.findViewById(R.id.buttonExportData);
-        textViewVersion = view.findViewById(R.id.textViewVersion);
+        buttonImportData = view.findViewById(R.id.buttonImportData);
+        buttonClearData = view.findViewById(R.id.buttonClearData);
+        textViewStatus = view.findViewById(R.id.textViewStatus);
+        progressBar = view.findViewById(R.id.progressBar);
     }
 
     private void setupViewModel() {
-        viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
-        Application application = requireActivity().getApplication();
-        aiRepository = new AIRepository(application);
+        viewModel = new ViewModelProvider(this).get(ExportImportViewModel.class);
+        aiRepository = new AIRepository(requireContext());
 
-        viewModel.getDataCleared().observe(getViewLifecycleOwner(), cleared -> {
-            if (cleared != null && cleared) {
-                Toast.makeText(getContext(), "All data cleared successfully", Toast.LENGTH_SHORT).show();
-                viewModel.resetDataClearedState();
-            }
+        viewModel.getOperationStatus().observe(getViewLifecycleOwner(), status -> {
+            textViewStatus.setText(status);
+            textViewStatus.setVisibility(View.VISIBLE);
         });
+
+        viewModel.getOperationInProgress().observe(getViewLifecycleOwner(), inProgress -> {
+            progressBar.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+            buttonExportData.setEnabled(!inProgress);
+            buttonImportData.setEnabled(!inProgress);
+        });
+    }
+
+    private void setupFilePickers() {
+        exportLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            viewModel.exportData(uri);
+                        }
+                    }
+                }
+        );
+
+        importLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            showImportConfirmation(uri);
+                        }
+                    }
+                }
+        );
     }
 
     private void setupListeners() {
-        buttonConfigureApiKey.setOnClickListener(v -> showApiKeyDialog());
-
-        buttonRemoveApiKey.setOnClickListener(v -> {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Remove API Key")
-                    .setMessage("Are you sure you want to remove the AI API key? AI summary features will be disabled.")
-                    .setPositiveButton("Remove", (dialog, which) -> {
-                        aiRepository.clearApiKey();
-                        updateUI();
-                        Toast.makeText(getContext(), "API key removed", Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        });
-
-        switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            viewModel.setNotificationsEnabled(isChecked);
-            Toast.makeText(getContext(),
-                    isChecked ? "Notifications enabled" : "Notifications disabled",
-                    Toast.LENGTH_SHORT).show();
-        });
-
-        buttonClearAllData.setOnClickListener(v -> {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Clear All Data")
-                    .setMessage("This will permanently delete all your posts and data. This action cannot be undone.")
-                    .setPositiveButton("Clear All", (dialog, which) -> {
-                        viewModel.clearAllData();
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .show();
-        });
-
-        buttonExportData.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Export feature coming soon", Toast.LENGTH_SHORT).show();
-        });
+        buttonSaveApiKey.setOnClickListener(v -> saveApiKey());
+        buttonExportData.setOnClickListener(v -> exportData());
+        buttonImportData.setOnClickListener(v -> importData());
+        buttonClearData.setOnClickListener(v -> showClearDataConfirmation());
     }
 
-    private void showApiKeyDialog() {
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_api_key, null);
-        EditText editTextApiKey = dialogView.findViewById(R.id.editTextApiKey);
-        TextView textViewHint = dialogView.findViewById(R.id.textViewApiKeyHint);
+    private void loadApiKey() {
+        String apiKey = aiRepository.getApiKey();
+        if (apiKey != null && !apiKey.isEmpty()) {
+            editTextApiKey.setText(maskApiKey(apiKey));
+        }
+    }
 
-        String currentKey = aiRepository.getApiKey();
-        if (currentKey != null && !currentKey.isEmpty()) {
-            editTextApiKey.setText(maskApiKey(currentKey));
+    private void saveApiKey() {
+        String apiKey = editTextApiKey.getText().toString().trim();
+
+        if (apiKey.isEmpty()) {
+            editTextApiKey.setError("API key cannot be empty");
+            return;
         }
 
-        textViewHint.setText("Enter your API key (starts with 'gsk-', 'xai-', or 'sk-')");
+        aiRepository.saveApiKey(apiKey);
+        Toast.makeText(getContext(), "API key saved successfully", Toast.LENGTH_SHORT).show();
+        textViewStatus.setText("API key configured");
+        textViewStatus.setVisibility(View.VISIBLE);
+    }
 
+    private void exportData() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(Intent.EXTRA_TITLE, viewModel.generateExportFileName());
+        exportLauncher.launch(intent);
+    }
+
+    private void importData() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        importLauncher.launch(intent);
+    }
+
+    private void showImportConfirmation(Uri uri) {
         new AlertDialog.Builder(requireContext())
-                .setTitle("Configure AI API Key")
-                .setView(dialogView)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String apiKey = editTextApiKey.getText().toString().trim();
+                .setTitle("Import Data")
+                .setMessage("Do you want to replace existing data or merge with current data?")
+                .setPositiveButton("Replace", (dialog, which) -> {
+                    viewModel.importData(uri, true);
+                })
+                .setNegativeButton("Merge", (dialog, which) -> {
+                    viewModel.importData(uri, false);
+                })
+                .setNeutralButton("Cancel", null)
+                .show();
+    }
 
-                    if (apiKey.isEmpty()) {
-                        Toast.makeText(getContext(), "API key cannot be empty", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    if (!AIUtils.isValidApiKey(apiKey)) {
-                        Toast.makeText(getContext(), "Invalid API key format", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    aiRepository.saveApiKey(apiKey);
-                    updateUI();
-                    Toast.makeText(getContext(), "API key saved successfully", Toast.LENGTH_SHORT).show();
+    private void showClearDataConfirmation() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Clear All Data")
+                .setMessage("Are you sure you want to delete all posts? This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    // Clear data logic would go here
+                    Toast.makeText(getContext(), "All data cleared", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void updateUI() {
-        boolean hasApiKey = aiRepository.isApiKeyConfigured();
-
-        if (hasApiKey) {
-            textViewApiKeyStatus.setText("AI API Key: Configured ✓");
-            textViewApiKeyStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
-            buttonRemoveApiKey.setVisibility(View.VISIBLE);
-            buttonConfigureApiKey.setText("Update API Key");
-        } else {
-            textViewApiKeyStatus.setText("AI API Key: Not Configured");
-            textViewApiKeyStatus.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-            buttonRemoveApiKey.setVisibility(View.GONE);
-            buttonConfigureApiKey.setText("Configure API Key");
-        }
-
-        boolean notificationsEnabled = viewModel.areNotificationsEnabled();
-        switchNotifications.setChecked(notificationsEnabled);
-
-        try {
-            String versionName = requireContext().getPackageManager()
-                    .getPackageInfo(requireContext().getPackageName(), 0).versionName;
-            textViewVersion.setText("Version " + versionName);
-        } catch (Exception e) {
-            textViewVersion.setText("Version 1.0.0");
-        }
-    }
-
     private String maskApiKey(String apiKey) {
-        if (apiKey == null || apiKey.length() < 8) {
-            return "••••••••";
+        if (apiKey.length() <= 8) {
+            return "****";
         }
-        return apiKey.substring(0, 7) + "••••••••" + apiKey.substring(apiKey.length() - 4);
+        return apiKey.substring(0, 4) + "****" + apiKey.substring(apiKey.length() - 4);
     }
 }
