@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smarttimeline.R;
 import com.example.smarttimeline.data.entity.Post;
+import com.example.smarttimeline.ui.postdetail.PostDetailFragment;
 import com.example.smarttimeline.util.Constants;
 import com.example.smarttimeline.viewmodel.TimelineViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -67,7 +68,13 @@ public class TimelineFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         adapter.setOnItemClickListener(post -> {
-            // Handle post click - navigate to detail view if needed
+            if (getActivity() != null) {
+                getActivity().getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, PostDetailFragment.newInstance(post.getId()))
+                        .addToBackStack(null)
+                        .commit();
+            }
         });
     }
 
