@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -25,6 +26,7 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +41,11 @@ public class AnalyticsFragment extends Fragment {
     private BarChart barChartTags;
     private TextView textViewTotalPosts;
     private TextView textViewNoData;
+    private View emptyStateView;
+    private ImageView emptyStateIcon;
+    private TextView emptyStateTitle;
+    private TextView emptyStateMessage;
+    private MaterialButton emptyStateButton;
 
     @Nullable
     @Override
@@ -56,9 +63,33 @@ public class AnalyticsFragment extends Fragment {
         barChartPostsPerDay = view.findViewById(R.id.barChartPostsPerDay);
         barChartTags = view.findViewById(R.id.barChartTags);
         textViewTotalPosts = view.findViewById(R.id.textViewTotalPosts);
-        textViewNoData = view.findViewById(R.id.textViewNoData);
+
+        emptyStateView = view.findViewById(R.id.emptyStateView);
+        emptyStateIcon = emptyStateView.findViewById(R.id.emptyStateIcon);
+        emptyStateTitle = emptyStateView.findViewById(R.id.emptyStateTitle);
+        emptyStateMessage = emptyStateView.findViewById(R.id.emptyStateMessage);
+        emptyStateButton = emptyStateView.findViewById(R.id.emptyStateButton);
 
         setupCharts();
+        setupEmptyState();
+    }
+
+    private void setupEmptyState() {
+        emptyStateIcon.setImageResource(R.drawable.ic_empty_analytics);
+        emptyStateTitle.setText("No analytics yet");
+        emptyStateMessage.setText("Create posts to see insights about your timeline, moods, and activities");
+        emptyStateButton.setVisibility(View.VISIBLE);
+        emptyStateButton.setText("Create Post");
+
+        emptyStateButton.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                getActivity().getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new com.example.smarttimeline.ui.addpost.AddPostFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
     }
 
     private void setupCharts() {
@@ -86,12 +117,12 @@ public class AnalyticsFragment extends Fragment {
                 textViewTotalPosts.setText("Total Posts: " + count);
 
                 if (count == 0) {
-                    textViewNoData.setVisibility(View.VISIBLE);
+                    emptyStateView.setVisibility(View.VISIBLE);
                     pieChartMood.setVisibility(View.GONE);
                     barChartPostsPerDay.setVisibility(View.GONE);
                     barChartTags.setVisibility(View.GONE);
                 } else {
-                    textViewNoData.setVisibility(View.GONE);
+                    emptyStateView.setVisibility(View.GONE);
                     pieChartMood.setVisibility(View.VISIBLE);
                     barChartPostsPerDay.setVisibility(View.VISIBLE);
                     barChartTags.setVisibility(View.VISIBLE);

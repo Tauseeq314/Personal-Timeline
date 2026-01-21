@@ -66,6 +66,12 @@
             android:visibility="gone"
             android:layout_marginBottom="16dp" />
 
+        <include
+            android:id="@+id/emptyStateView"
+            layout="@layout/empty_state_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
         <TextView
             android:id="@+id/textViewNoSummary"
             android:layout_width="match_parent"
@@ -76,7 +82,7 @@
             android:gravity="center"
             android:padding="32dp"
             android:minHeight="100dp"
-            android:visibility="visible" />
+            android:visibility="gone" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

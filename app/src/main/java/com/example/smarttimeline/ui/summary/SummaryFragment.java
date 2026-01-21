@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -16,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.smarttimeline.R;
 import com.example.smarttimeline.data.model.AISummary;
 import com.example.smarttimeline.viewmodel.SummaryViewModel;
+import com.google.android.material.button.MaterialButton;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,6 +38,11 @@ public class SummaryFragment extends Fragment {
     private Button buttonMonthlySummary;
     private Button buttonYearlySummary;
     private ProgressBar progressBar;
+    private View emptyStateView;
+    private ImageView emptyStateIcon;
+    private TextView emptyStateTitle;
+    private TextView emptyStateMessage;
+    private MaterialButton emptyStateButton;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault());
 
@@ -63,6 +70,20 @@ public class SummaryFragment extends Fragment {
         buttonMonthlySummary = view.findViewById(R.id.buttonMonthlySummary);
         buttonYearlySummary = view.findViewById(R.id.buttonYearlySummary);
         progressBar = view.findViewById(R.id.progressBar);
+        emptyStateView = view.findViewById(R.id.emptyStateView);
+        emptyStateIcon = emptyStateView.findViewById(R.id.emptyStateIcon);
+        emptyStateTitle = emptyStateView.findViewById(R.id.emptyStateTitle);
+        emptyStateMessage = emptyStateView.findViewById(R.id.emptyStateMessage);
+        emptyStateButton = emptyStateView.findViewById(R.id.emptyStateButton);
+
+        setupEmptyState();
+    }
+
+    private void setupEmptyState() {
+        emptyStateIcon.setImageResource(R.drawable.ic_empty_summary);
+        emptyStateTitle.setText("No summary yet");
+        emptyStateMessage.setText("Generate an AI-powered summary of your timeline by selecting a time period above");
+        emptyStateButton.setVisibility(View.GONE);
     }
 
     private void setupViewModel() {
@@ -74,14 +95,49 @@ public class SummaryFragment extends Fragment {
             if (status != null) {
                 if (status.startsWith("Error:") || status.contains("not configured") || status.contains("No posts")) {
                     progressBar.setVisibility(View.GONE);
-                    textViewNoSummary.setVisibility(View.VISIBLE);
-                    textViewNoSummary.setText(status);
+                    emptyStateView.setVisibility(View.VISIBLE);
+
+                    if (status.contains("not configured")) {
+                        emptyStateTitle.setText("API Key Required");
+                        emptyStateMessage.setText("Configure your Groq API key in Settings to generate AI summaries");
+                        emptyStateButton.setVisibility(View.VISIBLE);
+                        emptyStateButton.setText("Go to Settings");
+                        emptyStateButton.setOnClickListener(v -> {
+                            if (getActivity() != null) {
+                                getActivity().getSupportFragmentManager()
+                                        .beginTransaction()
+                                        .replace(R.id.fragment_container, new com.example.smarttimeline.ui.settings.SettingsFragment())
+                                        .addToBackStack(null)
+                                        .commit();
+                            }
+                        });
+                    } else if (status.contains("No posts")) {
+                        emptyStateTitle.setText("No posts found");
+                        emptyStateMessage.setText("Create some posts first to generate meaningful summaries");
+                        emptyStateButton.setVisibility(View.VISIBLE);
+                        emptyStateButton.setText("Create Post");
+                        emptyStateButton.setOnClickListener(v -> {
+                            if (getActivity() != null) {
+                                getActivity().getSupportFragmentManager()
+                                        .beginTransaction()
+                                        .replace(R.id.fragment_container, new com.example.smarttimeline.ui.addpost.AddPostFragment())
+                                        .addToBackStack(null)
+                                        .commit();
+                            }
+                        });
+                    } else {
+                        emptyStateTitle.setText("Generation Failed");
+                        emptyStateMessage.setText(status);
+                        emptyStateButton.setVisibility(View.GONE);
+                    }
+
                     hideSummaryViews();
                 } else if (status.equals("Generating summary...")) {
                     progressBar.setVisibility(View.VISIBLE);
-                    textViewNoSummary.setVisibility(View.GONE);
+                    emptyStateView.setVisibility(View.GONE);
                 } else if (status.equals("Summary generated successfully")) {
                     progressBar.setVisibility(View.GONE);
+                    emptyStateView.setVisibility(View.GONE);
                 }
             }
         });
@@ -110,7 +166,10 @@ public class SummaryFragment extends Fragment {
 
     private void displaySummary(AISummary summary) {
         if (summary == null) {
-            textViewNoSummary.setVisibility(View.VISIBLE);
+            emptyStateView.setVisibility(View.VISIBLE);
+            emptyStateTitle.setText("No summary yet");
+            emptyStateMessage.setText("Generate an AI-powered summary by selecting a time period above");
+            emptyStateButton.setVisibility(View.GONE);
             hideSummaryViews();
             return;
         }

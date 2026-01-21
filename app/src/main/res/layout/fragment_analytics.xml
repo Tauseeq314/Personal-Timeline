@@ -26,15 +26,11 @@
             android:textSize="18sp"
             android:layout_marginBottom="24dp" />
 
-        <TextView
-            android:id="@+id/textViewNoData"
+        <include
+            android:id="@+id/emptyStateView"
+            layout="@layout/empty_state_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="No data available yet. Create some posts to see analytics!"
-            android:textSize="16sp"
-            android:textColor="@android:color/darker_gray"
-            android:gravity="center"
-            android:padding="32dp"
             android:visibility="gone" />
 
         <TextView

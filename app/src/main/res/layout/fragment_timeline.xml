@@ -57,15 +57,11 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <TextView
-        android:id="@+id/textViewEmpty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No posts yet.\nTap + to create your first post!"
-        android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
-        android:textAlignment="center"
-        android:gravity="center"
+    <include
+        android:id="@+id/emptyStateView"
+        layout="@layout/empty_state_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/cardSearch"
         app:layout_constraintBottom_toBottomOf="parent"

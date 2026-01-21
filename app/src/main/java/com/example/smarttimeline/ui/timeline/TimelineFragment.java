@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,6 +22,7 @@ import com.example.smarttimeline.data.entity.Post;
 import com.example.smarttimeline.ui.postdetail.PostDetailFragment;
 import com.example.smarttimeline.util.Constants;
 import com.example.smarttimeline.viewmodel.TimelineViewModel;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
@@ -39,6 +41,11 @@ public class TimelineFragment extends Fragment {
     private List<Post> allPosts = new ArrayList<>();
     private String currentSearchQuery = "";
     private String currentMoodFilter = "All Moods";
+    private View emptyStateView;
+    private ImageView emptyStateIcon;
+    private TextView emptyStateTitle;
+    private TextView emptyStateMessage;
+    private MaterialButton emptyStateButton;
 
     @Nullable
     @Override
@@ -46,18 +53,35 @@ public class TimelineFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_timeline, container, false);
 
         recyclerView = view.findViewById(R.id.recyclerViewTimeline);
-        emptyTextView = view.findViewById(R.id.textViewEmpty);
         fabAddPost = view.findViewById(R.id.fabAddPost);
         searchView = view.findViewById(R.id.searchView);
         moodFilterDropdown = view.findViewById(R.id.moodFilterDropdown);
+
+        emptyStateView = view.findViewById(R.id.emptyStateView);
+        emptyStateIcon = emptyStateView.findViewById(R.id.emptyStateIcon);
+        emptyStateTitle = emptyStateView.findViewById(R.id.emptyStateTitle);
+        emptyStateMessage = emptyStateView.findViewById(R.id.emptyStateMessage);
+        emptyStateButton = emptyStateView.findViewById(R.id.emptyStateButton);
 
         setupRecyclerView();
         setupSearchView();
         setupMoodFilter();
         setupViewModel();
         setupFab();
+        setupEmptyState();
 
         return view;
+    }
+    private void setupEmptyState() {
+        emptyStateButton.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                getActivity().getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new com.example.smarttimeline.ui.addpost.AddPostFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
     }
 
     private void setupRecyclerView() {
@@ -196,16 +220,34 @@ public class TimelineFragment extends Fragment {
     private void updateEmptyView(List<Post> filteredPosts) {
         if (filteredPosts.isEmpty()) {
             recyclerView.setVisibility(View.GONE);
-            emptyTextView.setVisibility(View.VISIBLE);
+            emptyStateView.setVisibility(View.VISIBLE);
 
-            if (!currentSearchQuery.isEmpty() || !currentMoodFilter.equals("All Moods")) {
-                emptyTextView.setText("No posts match your filters");
+            // Determine the reason for empty state
+            boolean hasFilters = !currentSearchQuery.isEmpty() || !currentMoodFilter.equals("All Moods");
+
+            if (hasFilters) {
+                // No results for search/filter
+                emptyStateIcon.setImageResource(R.drawable.ic_empty_search);
+                emptyStateTitle.setText("No matching posts");
+                emptyStateMessage.setText("Try adjusting your filters or search terms");
+                emptyStateButton.setVisibility(View.GONE);
+            } else if (allPosts.isEmpty()) {
+                // Truly empty timeline
+                emptyStateIcon.setImageResource(R.drawable.ic_empty_timeline);
+                emptyStateTitle.setText("No posts yet");
+                emptyStateMessage.setText("Start capturing your moments and build your personal timeline");
+                emptyStateButton.setVisibility(View.VISIBLE);
+                emptyStateButton.setText("Create First Post");
             } else {
-                emptyTextView.setText("No posts yet.\nTap + to create your first post!");
+                // Has posts but all filtered out (shouldn't normally happen)
+                emptyStateIcon.setImageResource(R.drawable.ic_empty_search);
+                emptyStateTitle.setText("No posts found");
+                emptyStateMessage.setText("Try different search criteria");
+                emptyStateButton.setVisibility(View.GONE);
             }
         } else {
             recyclerView.setVisibility(View.VISIBLE);
-            emptyTextView.setVisibility(View.GONE);
+            emptyStateView.setVisibility(View.GONE);
         }
     }
 
