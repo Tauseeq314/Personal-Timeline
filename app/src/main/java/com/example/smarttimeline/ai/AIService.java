@@ -81,7 +81,10 @@ public class AIService {
             if (post.getMood() != null && !post.getMood().isEmpty()) {
                 prompt.append("[").append(post.getMood()).append("] ");
             }
-            prompt.append(post.getText());
+            // ADD NULL CHECK:
+            if (post.getText() != null) {
+                prompt.append(post.getText());
+            }
             if (post.getTags() != null && !post.getTags().isEmpty()) {
                 prompt.append(" (Tags: ").append(String.join(", ", post.getTags())).append(")");
             }

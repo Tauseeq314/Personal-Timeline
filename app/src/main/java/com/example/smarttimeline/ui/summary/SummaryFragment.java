@@ -70,6 +70,22 @@ public class SummaryFragment extends Fragment {
 
         viewModel.getLatestSummary().observe(getViewLifecycleOwner(), this::displaySummary);
 
+        viewModel.getSummaryStatus().observe(getViewLifecycleOwner(), status -> {
+            if (status != null) {
+                if (status.startsWith("Error:") || status.contains("not configured") || status.contains("No posts")) {
+                    progressBar.setVisibility(View.GONE);
+                    textViewNoSummary.setVisibility(View.VISIBLE);
+                    textViewNoSummary.setText(status);
+                    hideSummaryViews();
+                } else if (status.equals("Generating summary...")) {
+                    progressBar.setVisibility(View.VISIBLE);
+                    textViewNoSummary.setVisibility(View.GONE);
+                } else if (status.equals("Summary generated successfully")) {
+                    progressBar.setVisibility(View.GONE);
+                }
+            }
+        });
+
         viewModel.getCurrentPeriodPosts().observe(getViewLifecycleOwner(), posts -> {
             progressBar.setVisibility(View.GONE);
         });

@@ -75,6 +75,7 @@
             android:textColor="@android:color/darker_gray"
             android:gravity="center"
             android:padding="32dp"
+            android:minHeight="100dp"
             android:visibility="visible" />
 
         <com.google.android.material.card.MaterialCardView

@@ -1,3 +1,4 @@
+// Replace the entire class with this:
 package com.example.smarttimeline.viewmodel;
 
 import android.app.Application;
@@ -7,9 +8,9 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 
+import com.example.smarttimeline.ai.AIRepository;
 import com.example.smarttimeline.data.entity.Post;
 import com.example.smarttimeline.data.model.AISummary;
-import com.example.smarttimeline.data.repository.AISummaryRepository;
 import com.example.smarttimeline.data.repository.PostRepository;
 
 import java.util.List;
@@ -17,20 +18,22 @@ import java.util.List;
 public class SummaryViewModel extends AndroidViewModel {
 
     private final PostRepository postRepository;
-    private final AISummaryRepository aiSummaryRepository;
-    private final LiveData<AISummary> latestSummary;
+    private final AIRepository aiRepository;
     private final MediatorLiveData<List<Post>> currentPeriodPosts;
 
     public SummaryViewModel(@NonNull Application application) {
         super(application);
         postRepository = new PostRepository(application);
-        aiSummaryRepository = new AISummaryRepository(application);
-        latestSummary = aiSummaryRepository.getLatestSummary();
+        aiRepository = new AIRepository(application);
         currentPeriodPosts = new MediatorLiveData<>();
     }
 
     public LiveData<AISummary> getLatestSummary() {
-        return latestSummary;
+        return aiRepository.getGeneratedSummary();
+    }
+
+    public LiveData<String> getSummaryStatus() {
+        return aiRepository.getSummaryStatus();
     }
 
     public LiveData<List<Post>> getCurrentPeriodPosts() {
@@ -43,7 +46,7 @@ public class SummaryViewModel extends AndroidViewModel {
         currentPeriodPosts.addSource(postsLiveData, posts -> {
             currentPeriodPosts.setValue(posts);
             if (posts != null) {
-                aiSummaryRepository.generateSummary(posts, period);
+                aiRepository.generateAISummary(posts, period);
             }
             currentPeriodPosts.removeSource(postsLiveData);
         });
@@ -69,5 +72,11 @@ public class SummaryViewModel extends AndroidViewModel {
 
     public LiveData<List<Post>> getAllPosts() {
         return postRepository.getAllPosts();
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        aiRepository.shutdown();
     }
 }

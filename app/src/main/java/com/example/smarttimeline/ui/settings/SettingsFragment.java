@@ -121,6 +121,7 @@ public class SettingsFragment extends Fragment {
         }
     }
 
+    // Replace the saveApiKey method:
     private void saveApiKey() {
         String apiKey = editTextApiKey.getText().toString().trim();
 
@@ -129,10 +130,22 @@ public class SettingsFragment extends Fragment {
             return;
         }
 
+        // ADD VALIDATION:
+        if (!isValidApiKey(apiKey)) {
+            editTextApiKey.setError("Invalid API key format. Expected format: gsk-...");
+            Toast.makeText(getContext(), "Please enter a valid Groq API key (starts with 'gsk-')", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         aiRepository.saveApiKey(apiKey);
         Toast.makeText(getContext(), "API key saved successfully", Toast.LENGTH_SHORT).show();
-        textViewStatus.setText("API key configured");
+        textViewStatus.setText("API key configured - AI summaries enabled");
         textViewStatus.setVisibility(View.VISIBLE);
+    }
+
+    private boolean isValidApiKey(String apiKey) {
+        // Groq API keys start with "gsk-"
+        return apiKey.startsWith("gsk") && apiKey.length() > 10;
     }
 
     private void exportData() {
