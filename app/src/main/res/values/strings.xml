@@ -2,6 +2,7 @@
 <resources>
     <!-- App Name -->
     <string name="app_name">SmartTimeline</string>
+    <string name="app_subtitle">Capture Your Moments</string>
 
     <!-- Navigation -->
     <string name="nav_timeline">Timeline</string>

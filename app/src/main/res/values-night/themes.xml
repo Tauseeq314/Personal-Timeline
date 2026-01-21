@@ -18,7 +18,8 @@
 
         <!-- Status bar color -->
         <item name="android:statusBarColor">@color/primary_dark</item>
-
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowLightStatusBar">false</item>
         <!-- Customize your theme here -->
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
