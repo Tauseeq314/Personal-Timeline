@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.smarttimeline.R;
 import com.example.smarttimeline.ai.AIRepository;
 import com.example.smarttimeline.viewmodel.ExportImportViewModel;
+import com.example.smarttimeline.viewmodel.SettingsViewModel;
 
 public class SettingsFragment extends Fragment {
 
@@ -40,6 +41,7 @@ public class SettingsFragment extends Fragment {
 
     private ActivityResultLauncher<Intent> exportLauncher;
     private ActivityResultLauncher<Intent> importLauncher;
+    private SettingsViewModel settingsViewModel;
 
     @Nullable
     @Override
@@ -67,6 +69,7 @@ public class SettingsFragment extends Fragment {
 
     private void setupViewModel() {
         viewModel = new ViewModelProvider(this).get(ExportImportViewModel.class);
+        settingsViewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
         aiRepository = new AIRepository(requireContext());
 
         viewModel.getOperationStatus().observe(getViewLifecycleOwner(), status -> {
@@ -182,11 +185,30 @@ public class SettingsFragment extends Fragment {
                 .setTitle("Clear All Data")
                 .setMessage("Are you sure you want to delete all posts? This action cannot be undone.")
                 .setPositiveButton("Delete", (dialog, which) -> {
-                    // Clear data logic would go here
-                    Toast.makeText(getContext(), "All data cleared", Toast.LENGTH_SHORT).show();
+                    clearAllData();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void clearAllData() {
+        textViewStatus.setVisibility(View.VISIBLE);
+        textViewStatus.setText("Clearing all data...");
+        textViewStatus.setTextColor(getResources().getColor(android.R.color.holo_orange_dark, null));
+
+        // Use SettingsViewModel to clear data
+        SettingsViewModel settingsViewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
+
+        settingsViewModel.getDataCleared().observe(getViewLifecycleOwner(), cleared -> {
+            if (cleared != null && cleared) {
+                textViewStatus.setText("All data cleared successfully");
+                textViewStatus.setTextColor(getResources().getColor(android.R.color.holo_green_dark, null));
+                Toast.makeText(getContext(), "All data cleared", Toast.LENGTH_SHORT).show();
+                settingsViewModel.resetDataClearedState();
+            }
+        });
+
+        settingsViewModel.clearAllData();
     }
 
     private String maskApiKey(String apiKey) {

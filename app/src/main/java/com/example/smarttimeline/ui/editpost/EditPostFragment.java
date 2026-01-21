@@ -121,16 +121,24 @@ public class EditPostFragment extends Fragment {
 
         viewModel.getPost().observe(getViewLifecycleOwner(), this::populateFields);
 
+        // FIX THIS OBSERVER:
         viewModel.getUpdateStatus().observe(getViewLifecycleOwner(), success -> {
-            if (success != null && success) {
+            // Only process non-null values
+            if (success == null) {
+                return;
+            }
+
+            if (success) {
                 Toast.makeText(getContext(), "Post updated successfully!", Toast.LENGTH_SHORT).show();
                 if (getActivity() != null) {
                     getActivity().getSupportFragmentManager().popBackStack();
                 }
-                viewModel.resetUpdateStatus();
-            } else if (success != null && !success) {
+            } else {
                 Toast.makeText(getContext(), "Failed to update post", Toast.LENGTH_SHORT).show();
             }
+
+            // Reset after handling
+            viewModel.resetUpdateStatus();
         });
     }
 

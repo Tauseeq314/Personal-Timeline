@@ -17,12 +17,14 @@ public class EditPostViewModel extends AndroidViewModel {
     private final MutableLiveData<Integer> postIdLiveData;
     private final LiveData<Post> post;
     private final MutableLiveData<Boolean> updateStatus;
+    private boolean hasResetStatus = false;
 
     public EditPostViewModel(@NonNull Application application) {
         super(application);
         repository = new PostRepository(application);
         postIdLiveData = new MutableLiveData<>();
         updateStatus = new MutableLiveData<>();
+        hasResetStatus = false;
 
         post = Transformations.switchMap(postIdLiveData, postId -> {
             if (postId != null && postId != -1) {
@@ -51,10 +53,14 @@ public class EditPostViewModel extends AndroidViewModel {
         }
 
         repository.update(post);
+        // Use setValue instead of postValue for immediate UI thread update
         updateStatus.setValue(true);
     }
 
     public void resetUpdateStatus() {
-        updateStatus.setValue(false);
+        if (!hasResetStatus) {
+            hasResetStatus = true;
+            updateStatus.setValue(null);
+        }
     }
 }
