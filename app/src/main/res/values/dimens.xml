@@ -42,4 +42,10 @@
 
     <!-- Bottom Navigation -->
     <dimen name="bottom_nav_height">56dp</dimen>
+
+    <!-- Card Dimensions -->
+    <dimen name="card_corner_radius_large">12dp</dimen>
+    <dimen name="card_margin_horizontal">12dp</dimen>
+    <dimen name="card_margin_vertical">6dp</dimen>
+    <dimen name="mood_strip_width">4dp</dimen>
 </resources>

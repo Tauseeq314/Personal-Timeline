@@ -28,6 +28,20 @@
     <color name="mood_motivated">#FFEB3B</color>
     <color name="mood_neutral">#9E9E9E</color>
 
+    <!-- Mood Accent Colors (for card strips) -->
+    <color name="mood_happy_accent">#4CAF50</color>
+    <color name="mood_sad_accent">#2196F3</color>
+    <color name="mood_excited_accent">#FF9800</color>
+    <color name="mood_calm_accent">#00BCD4</color>
+    <color name="mood_anxious_accent">#F44336</color>
+    <color name="mood_grateful_accent">#9C27B0</color>
+    <color name="mood_frustrated_accent">#FF5722</color>
+    <color name="mood_motivated_accent">#FFEB3B</color>
+    <color name="mood_neutral_accent">#9E9E9E</color>
+
+    <!-- Card Elevation Colors -->
+    <color name="card_shadow">#1A000000</color>
+
     <!-- Chart Colors -->
     <color name="chart_color_1">#2196F3</color>
     <color name="chart_color_2">#4CAF50</color>
