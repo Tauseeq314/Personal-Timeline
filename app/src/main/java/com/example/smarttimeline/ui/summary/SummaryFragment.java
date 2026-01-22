@@ -1,11 +1,12 @@
 package com.example.smarttimeline.ui.summary;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -18,6 +19,9 @@ import com.example.smarttimeline.R;
 import com.example.smarttimeline.data.model.AISummary;
 import com.example.smarttimeline.viewmodel.SummaryViewModel;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -33,11 +37,20 @@ public class SummaryFragment extends Fragment {
     private TextView textViewDominantMood;
     private TextView textViewKeyThemes;
     private TextView textViewGeneratedTime;
-    private TextView textViewNoSummary;
-    private Button buttonWeeklySummary;
-    private Button buttonMonthlySummary;
-    private Button buttonYearlySummary;
+    private TextView textViewLoadingStatus;
     private ProgressBar progressBar;
+    private MaterialButton buttonGenerateSummary;
+    private ChipGroup chipGroupPeriod;
+    private Chip chipWeekly;
+    private Chip chipMonthly;
+    private Chip chipYearly;
+    private ImageView iconShare;
+
+    private MaterialCardView cardSummaryResult;
+    private MaterialCardView cardLoading;
+    private LinearLayout layoutDominantMood;
+    private LinearLayout layoutKeyThemes;
+
     private View emptyStateView;
     private ImageView emptyStateIcon;
     private TextView emptyStateTitle;
@@ -45,6 +58,7 @@ public class SummaryFragment extends Fragment {
     private MaterialButton emptyStateButton;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault());
+    private String selectedPeriod = "Weekly";
 
     @Nullable
     @Override
@@ -54,6 +68,7 @@ public class SummaryFragment extends Fragment {
         initializeViews(view);
         setupViewModel();
         setupListeners();
+        setupEmptyState();
 
         return view;
     }
@@ -65,25 +80,29 @@ public class SummaryFragment extends Fragment {
         textViewDominantMood = view.findViewById(R.id.textViewDominantMood);
         textViewKeyThemes = view.findViewById(R.id.textViewKeyThemes);
         textViewGeneratedTime = view.findViewById(R.id.textViewGeneratedTime);
-        textViewNoSummary = view.findViewById(R.id.textViewNoSummary);
-        buttonWeeklySummary = view.findViewById(R.id.buttonWeeklySummary);
-        buttonMonthlySummary = view.findViewById(R.id.buttonMonthlySummary);
-        buttonYearlySummary = view.findViewById(R.id.buttonYearlySummary);
+        textViewLoadingStatus = view.findViewById(R.id.textViewLoadingStatus);
         progressBar = view.findViewById(R.id.progressBar);
+        buttonGenerateSummary = view.findViewById(R.id.buttonGenerateSummary);
+
+        chipGroupPeriod = view.findViewById(R.id.chipGroupPeriod);
+        chipWeekly = view.findViewById(R.id.chipWeekly);
+        chipMonthly = view.findViewById(R.id.chipMonthly);
+        chipYearly = view.findViewById(R.id.chipYearly);
+        iconShare = view.findViewById(R.id.iconShare);
+
+        cardSummaryResult = view.findViewById(R.id.cardSummaryResult);
+        cardLoading = view.findViewById(R.id.cardLoading);
+        layoutDominantMood = view.findViewById(R.id.layoutDominantMood);
+        layoutKeyThemes = view.findViewById(R.id.layoutKeyThemes);
+
         emptyStateView = view.findViewById(R.id.emptyStateView);
         emptyStateIcon = emptyStateView.findViewById(R.id.emptyStateIcon);
         emptyStateTitle = emptyStateView.findViewById(R.id.emptyStateTitle);
         emptyStateMessage = emptyStateView.findViewById(R.id.emptyStateMessage);
         emptyStateButton = emptyStateView.findViewById(R.id.emptyStateButton);
 
-        setupEmptyState();
-    }
-
-    private void setupEmptyState() {
-        emptyStateIcon.setImageResource(R.drawable.ic_empty_summary);
-        emptyStateTitle.setText("No summary yet");
-        emptyStateMessage.setText("Generate an AI-powered summary of your timeline by selecting a time period above");
-        emptyStateButton.setVisibility(View.GONE);
+        // Set Weekly as default
+        chipWeekly.setChecked(true);
     }
 
     private void setupViewModel() {
@@ -94,10 +113,13 @@ public class SummaryFragment extends Fragment {
         viewModel.getSummaryStatus().observe(getViewLifecycleOwner(), status -> {
             if (status != null) {
                 if (status.startsWith("Error:") || status.contains("not configured") || status.contains("No posts")) {
-                    progressBar.setVisibility(View.GONE);
+                    cardLoading.setVisibility(View.GONE);
                     emptyStateView.setVisibility(View.VISIBLE);
+                    cardSummaryResult.setVisibility(View.GONE);
+                    buttonGenerateSummary.setEnabled(true);
 
                     if (status.contains("not configured")) {
+                        emptyStateIcon.setImageResource(R.drawable.ic_empty_summary);
                         emptyStateTitle.setText("API Key Required");
                         emptyStateMessage.setText("Configure your Groq API key in Settings to generate AI summaries");
                         emptyStateButton.setVisibility(View.VISIBLE);
@@ -112,6 +134,7 @@ public class SummaryFragment extends Fragment {
                             }
                         });
                     } else if (status.contains("No posts")) {
+                        emptyStateIcon.setImageResource(R.drawable.ic_empty_summary);
                         emptyStateTitle.setText("No posts found");
                         emptyStateMessage.setText("Create some posts first to generate meaningful summaries");
                         emptyStateButton.setVisibility(View.VISIBLE);
@@ -126,91 +149,130 @@ public class SummaryFragment extends Fragment {
                             }
                         });
                     } else {
+                        emptyStateIcon.setImageResource(R.drawable.ic_empty_summary);
                         emptyStateTitle.setText("Generation Failed");
                         emptyStateMessage.setText(status);
                         emptyStateButton.setVisibility(View.GONE);
                     }
-
-                    hideSummaryViews();
                 } else if (status.equals("Generating summary...")) {
-                    progressBar.setVisibility(View.VISIBLE);
+                    cardLoading.setVisibility(View.VISIBLE);
                     emptyStateView.setVisibility(View.GONE);
+                    cardSummaryResult.setVisibility(View.GONE);
+                    textViewLoadingStatus.setText("Analyzing your " + selectedPeriod.toLowerCase() + " timeline...");
                 } else if (status.equals("Summary generated successfully")) {
-                    progressBar.setVisibility(View.GONE);
+                    cardLoading.setVisibility(View.GONE);
                     emptyStateView.setVisibility(View.GONE);
+                    cardSummaryResult.setVisibility(View.VISIBLE);
+                    buttonGenerateSummary.setEnabled(true);
                 }
             }
-        });
-
-        viewModel.getCurrentPeriodPosts().observe(getViewLifecycleOwner(), posts -> {
-            progressBar.setVisibility(View.GONE);
         });
     }
 
     private void setupListeners() {
-        buttonWeeklySummary.setOnClickListener(v -> {
-            progressBar.setVisibility(View.VISIBLE);
-            viewModel.generateWeeklySummary();
+        chipGroupPeriod.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.contains(R.id.chipWeekly)) {
+                selectedPeriod = "Weekly";
+            } else if (checkedIds.contains(R.id.chipMonthly)) {
+                selectedPeriod = "Monthly";
+            } else if (checkedIds.contains(R.id.chipYearly)) {
+                selectedPeriod = "Yearly";
+            }
         });
 
-        buttonMonthlySummary.setOnClickListener(v -> {
-            progressBar.setVisibility(View.VISIBLE);
-            viewModel.generateMonthlySummary();
-        });
+        buttonGenerateSummary.setOnClickListener(v -> generateSummary());
 
-        buttonYearlySummary.setOnClickListener(v -> {
-            progressBar.setVisibility(View.VISIBLE);
-            viewModel.generateYearlySummary();
-        });
+        iconShare.setOnClickListener(v -> shareSummary());
+    }
+
+    private void setupEmptyState() {
+        emptyStateIcon.setImageResource(R.drawable.ic_empty_summary);
+        emptyStateTitle.setText("No summary yet");
+        emptyStateMessage.setText("Select a time period and generate an AI-powered summary of your timeline");
+        emptyStateButton.setVisibility(View.GONE);
+
+        // Show empty state by default
+        emptyStateView.setVisibility(View.VISIBLE);
+        cardSummaryResult.setVisibility(View.GONE);
+    }
+
+    private void generateSummary() {
+        cardLoading.setVisibility(View.VISIBLE);
+        emptyStateView.setVisibility(View.GONE);
+        cardSummaryResult.setVisibility(View.GONE);
+        textViewLoadingStatus.setText("Analyzing your " + selectedPeriod.toLowerCase() + " timeline...");
+        buttonGenerateSummary.setEnabled(false);
+        switch (selectedPeriod) {
+            case "Weekly":
+                viewModel.generateWeeklySummary();
+                break;
+            case "Monthly":
+                viewModel.generateMonthlySummary();
+                break;
+            case "Yearly":
+                viewModel.generateYearlySummary();
+                break;
+        }
     }
 
     private void displaySummary(AISummary summary) {
         if (summary == null) {
-            emptyStateView.setVisibility(View.VISIBLE);
-            emptyStateTitle.setText("No summary yet");
-            emptyStateMessage.setText("Generate an AI-powered summary by selecting a time period above");
-            emptyStateButton.setVisibility(View.GONE);
-            hideSummaryViews();
             return;
         }
 
-        textViewNoSummary.setVisibility(View.GONE);
-        showSummaryViews();
+        cardSummaryResult.setVisibility(View.VISIBLE);
+        emptyStateView.setVisibility(View.GONE);
 
         textViewSummaryText.setText(summary.getSummaryText());
-        textViewPeriod.setText("Period: " + summary.getPeriod());
-        textViewPostCount.setText("Posts: " + summary.getPostCount());
+        textViewPeriod.setText(summary.getPeriod() + " Summary");
+        textViewPostCount.setText(String.valueOf(summary.getPostCount()));
+        textViewGeneratedTime.setText("Generated: " + dateFormat.format(new Date(summary.getGeneratedTimestamp())));
 
         if (summary.getDominantMood() != null && !summary.getDominantMood().isEmpty()) {
-            textViewDominantMood.setVisibility(View.VISIBLE);
-            textViewDominantMood.setText("Mood: " + summary.getDominantMood());
+            layoutDominantMood.setVisibility(View.VISIBLE);
+            textViewDominantMood.setText(getMoodEmoji(summary.getDominantMood()) + " " + summary.getDominantMood());
         } else {
-            textViewDominantMood.setVisibility(View.GONE);
+            layoutDominantMood.setVisibility(View.GONE);
         }
 
         if (summary.getKeyThemes() != null && !summary.getKeyThemes().isEmpty()) {
-            textViewKeyThemes.setVisibility(View.VISIBLE);
-            textViewKeyThemes.setText("Themes: " + summary.getKeyThemes());
+            layoutKeyThemes.setVisibility(View.VISIBLE);
+            textViewKeyThemes.setText(summary.getKeyThemes());
         } else {
-            textViewKeyThemes.setVisibility(View.GONE);
+            layoutKeyThemes.setVisibility(View.GONE);
         }
-
-        textViewGeneratedTime.setText("Generated: " + dateFormat.format(new Date(summary.getGeneratedTimestamp())));
     }
 
-    private void showSummaryViews() {
-        textViewSummaryText.setVisibility(View.VISIBLE);
-        textViewPeriod.setVisibility(View.VISIBLE);
-        textViewPostCount.setVisibility(View.VISIBLE);
-        textViewGeneratedTime.setVisibility(View.VISIBLE);
+    private String getMoodEmoji(String mood) {
+        if (mood == null) return "😊";
+        switch (mood.toLowerCase()) {
+            case "happy": return "😊";
+            case "sad": return "😢";
+            case "excited": return "🤩";
+            case "calm": return "😌";
+            case "anxious": return "😰";
+            case "grateful": return "🙏";
+            case "frustrated": return "😤";
+            case "motivated": return "💪";
+            case "neutral": return "😐";
+            default: return "😊";
+        }
     }
 
-    private void hideSummaryViews() {
-        textViewSummaryText.setVisibility(View.GONE);
-        textViewPeriod.setVisibility(View.GONE);
-        textViewPostCount.setVisibility(View.GONE);
-        textViewDominantMood.setVisibility(View.GONE);
-        textViewKeyThemes.setVisibility(View.GONE);
-        textViewGeneratedTime.setVisibility(View.GONE);
+    private void shareSummary() {
+        AISummary summary = viewModel.getLatestSummary().getValue();
+        if (summary == null) return;
+
+        String shareText = "📊 " + summary.getPeriod() + " Summary\n\n" +
+                summary.getSummaryText() + "\n\n" +
+                "Posts: " + summary.getPostCount() + "\n" +
+                (summary.getDominantMood() != null ? "Mood: " + summary.getDominantMood() + "\n" : "") +
+                (summary.getKeyThemes() != null ? "Themes: " + summary.getKeyThemes() + "\n" : "") +
+                "\n📱 Generated by SmartTimeline";
+
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        startActivity(Intent.createChooser(shareIntent, "Share Summary"));
     }
 }

@@ -27,6 +27,7 @@ import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,16 @@ public class AnalyticsFragment extends Fragment {
     private TextView emptyStateTitle;
     private TextView emptyStateMessage;
     private MaterialButton emptyStateButton;
+    private TextView textViewTotalPostsCount;
+    private TextView textViewTopMood;
+    private TextView textViewTopMoodEmoji;
+    private TextView textViewActivityPeriod;
+    private TextView textViewTotalTags;
+    private TextView textViewInsights;
+    private MaterialCardView cardMoodChart;
+    private MaterialCardView cardActivityChart;
+    private MaterialCardView cardTagsChart;
+    private MaterialCardView cardInsights;
 
     @Nullable
     @Override
@@ -62,7 +73,18 @@ public class AnalyticsFragment extends Fragment {
         pieChartMood = view.findViewById(R.id.pieChartMood);
         barChartPostsPerDay = view.findViewById(R.id.barChartPostsPerDay);
         barChartTags = view.findViewById(R.id.barChartTags);
-        textViewTotalPosts = view.findViewById(R.id.textViewTotalPosts);
+
+        textViewTotalPostsCount = view.findViewById(R.id.textViewTotalPostsCount);
+        textViewTopMood = view.findViewById(R.id.textViewTopMood);
+        textViewTopMoodEmoji = view.findViewById(R.id.textViewTopMoodEmoji);
+        textViewActivityPeriod = view.findViewById(R.id.textViewActivityPeriod);
+        textViewTotalTags = view.findViewById(R.id.textViewTotalTags);
+        textViewInsights = view.findViewById(R.id.textViewInsights);
+
+        cardMoodChart = view.findViewById(R.id.cardMoodChart);
+        cardActivityChart = view.findViewById(R.id.cardActivityChart);
+        cardTagsChart = view.findViewById(R.id.cardTagsChart);
+        cardInsights = view.findViewById(R.id.cardInsights);
 
         emptyStateView = view.findViewById(R.id.emptyStateView);
         emptyStateIcon = emptyStateView.findViewById(R.id.emptyStateIcon);
@@ -114,18 +136,20 @@ public class AnalyticsFragment extends Fragment {
 
         viewModel.getPostCount().observe(getViewLifecycleOwner(), count -> {
             if (count != null) {
-                textViewTotalPosts.setText("Total Posts: " + count);
+                textViewTotalPostsCount.setText(String.valueOf(count));
 
                 if (count == 0) {
                     emptyStateView.setVisibility(View.VISIBLE);
-                    pieChartMood.setVisibility(View.GONE);
-                    barChartPostsPerDay.setVisibility(View.GONE);
-                    barChartTags.setVisibility(View.GONE);
+                    cardMoodChart.setVisibility(View.GONE);
+                    cardActivityChart.setVisibility(View.GONE);
+                    cardTagsChart.setVisibility(View.GONE);
+                    cardInsights.setVisibility(View.GONE);
                 } else {
                     emptyStateView.setVisibility(View.GONE);
-                    pieChartMood.setVisibility(View.VISIBLE);
-                    barChartPostsPerDay.setVisibility(View.VISIBLE);
-                    barChartTags.setVisibility(View.VISIBLE);
+                    cardMoodChart.setVisibility(View.VISIBLE);
+                    cardActivityChart.setVisibility(View.VISIBLE);
+                    cardTagsChart.setVisibility(View.VISIBLE);
+                    generateInsights(count);
                 }
             }
         });
@@ -136,25 +160,60 @@ public class AnalyticsFragment extends Fragment {
 
         viewModel.getTagsDistribution().observe(getViewLifecycleOwner(), this::updateTagsChart);
     }
+    private String getMoodEmoji(String mood) {
+        if (mood == null) return "😊";
+        switch (mood.toLowerCase()) {
+            case "happy": return "😊";
+            case "sad": return "😢";
+            case "excited": return "🤩";
+            case "calm": return "😌";
+            case "anxious": return "😰";
+            case "grateful": return "🙏";
+            case "frustrated": return "😤";
+            case "motivated": return "💪";
+            case "neutral": return "😐";
+            default: return "😊";
+        }
+    }
 
     private void updateMoodChart(Map<String, Integer> moodData) {
         if (moodData == null || moodData.isEmpty()) {
             pieChartMood.clear();
+            textViewTopMood.setText("N/A");
+            textViewTopMoodEmoji.setText("😊");
             return;
         }
+
+        // Find top mood
+        String topMood = "Happy";
+        int maxCount = 0;
+        for (Map.Entry<String, Integer> entry : moodData.entrySet()) {
+            if (entry.getValue() > maxCount) {
+                maxCount = entry.getValue();
+                topMood = entry.getKey();
+            }
+        }
+
+        textViewTopMood.setText(topMood);
+        textViewTopMoodEmoji.setText(getMoodEmoji(topMood));
 
         List<PieEntry> entries = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : moodData.entrySet()) {
             entries.add(new PieEntry(entry.getValue(), entry.getKey()));
         }
 
-        PieDataSet dataSet = new PieDataSet(entries, "Mood Distribution");
+        PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        dataSet.setValueTextSize(12f);
+        dataSet.setValueTextSize(14f);
         dataSet.setValueTextColor(Color.WHITE);
+        dataSet.setSliceSpace(2f);
 
         PieData data = new PieData(dataSet);
         pieChartMood.setData(data);
+        pieChartMood.setDrawEntryLabels(true);
+        pieChartMood.setEntryLabelColor(Color.BLACK);
+        pieChartMood.setEntryLabelTextSize(12f);
+        pieChartMood.animateY(1000);
         pieChartMood.invalidate();
     }
 
@@ -188,8 +247,10 @@ public class AnalyticsFragment extends Fragment {
     private void updateTagsChart(Map<String, Integer> tagsData) {
         if (tagsData == null || tagsData.isEmpty()) {
             barChartTags.clear();
+            textViewTotalTags.setText("0 tags");
             return;
         }
+        textViewTotalTags.setText(tagsData.size() + " tags");
 
         List<BarEntry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
@@ -210,5 +271,22 @@ public class AnalyticsFragment extends Fragment {
         barChartTags.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
         barChartTags.getXAxis().setGranularity(1f);
         barChartTags.invalidate();
+    }
+
+    private void generateInsights(int postCount) {
+        cardInsights.setVisibility(View.VISIBLE);
+
+        String insight;
+        if (postCount < 5) {
+            insight = "🌱 Great start! You have " + postCount + " posts. Keep building your timeline!";
+        } else if (postCount < 20) {
+            insight = "📈 You're building momentum with " + postCount + " posts. Your timeline is taking shape!";
+        } else if (postCount < 50) {
+            insight = "⭐ Impressive! " + postCount + " posts captured. You're creating a rich personal history!";
+        } else {
+            insight = "🏆 Amazing dedication! " + postCount + " posts and counting. Your timeline is a treasure!";
+        }
+
+        textViewInsights.setText(insight);
     }
 }
