@@ -91,6 +91,10 @@ public class MainActivity extends AppCompatActivity {
                 selectedFragment = new com.example.smarttimeline.ui.analytics.AnalyticsFragment();
                 title = "Analytics";
                 showFab(false);
+            } else if (itemId == R.id.nav_chat) {
+                selectedFragment = new com.example.smarttimeline.ui.chat.ChatFragment();
+                title = "AI Chat";
+                showFab(false);
             } else if (itemId == R.id.nav_summary) {
                 selectedFragment = new com.example.smarttimeline.ui.summary.SummaryFragment();
                 title = "AI Summary";

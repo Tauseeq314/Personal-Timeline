@@ -126,4 +126,16 @@
     <string name="period_yearly">Yearly</string>
     <string name="period_custom">Custom</string>
     <string name="backup_restore"><![CDATA[Backup & Restore]]></string>
+
+    <!-- AI Chat -->
+    <string name="chat_title">AI Chat</string>
+    <string name="chat_subtitle">Ask me anything about your timeline</string>
+    <string name="chat_input_hint">Type your message...</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_clear">Clear chat</string>
+    <string name="chat_clear_confirmation">Are you sure you want to clear the chat history?</string>
+    <string name="chat_cleared">Chat cleared</string>
+    <string name="chat_empty_title">Start a conversation!</string>
+    <string name="chat_empty_message">Ask me about your timeline, moods, patterns, or anything else!</string>
+    <string name="chat_welcome">Hello! I\'m your SmartTimeline AI assistant. I can help you reflect on your timeline, understand patterns, and provide insights. How can I help you today?</string>
 </resources>
